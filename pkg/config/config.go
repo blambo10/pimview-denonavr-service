@@ -14,6 +14,8 @@ type Config struct {
 type MQTT struct {
 	Address  string
 	Port     int
+	Username string
+	Password string
 	ClientID string
 }
 
@@ -51,6 +53,8 @@ func NewConfig() *Config {
 		mqtt: MQTT{
 			Address:  envy.Get("MQTT_BROKER_ADDRESS", "localhost"),
 			Port:     port,
+			Username: envy.Get("MQTT_BROKER_USERNAME", ""),
+			Password: envy.Get("MQTT_BROKER_PASSWORD", ""),
 			ClientID: envy.Get("MQTT_BROKER_CLIENTID", "pimview-test"),
 		},
 	}
