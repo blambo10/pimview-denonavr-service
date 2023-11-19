@@ -6,6 +6,7 @@ import (
 	telnet "github.com/reiver/go-telnet"
 	"pimview.thelabshack.com/pkg/config"
 	"pimview.thelabshack.com/pkg/log"
+	"regexp"
 	"strings"
 )
 
@@ -20,13 +21,14 @@ const (
 	down   = "down"
 	mute   = "mute"
 
-	DenonMaster       = "MV"
+	DenonMasterVolume = "MV"
 	DenonVolumeUP     = "UP"
 	DenonVolumeDown   = "DOWN"
 	DenonVolumeMute   = "MUON"
 	DenonVolumeUNMute = "MUOFF"
 
 	DenonMuteState = "MU?"
+	DenonQuery     = "?"
 )
 
 var (
@@ -42,6 +44,16 @@ func New() *DenonAVR {
 		Host:   device,
 		Client: t,
 	}
+}
+
+func (h *DenonAVR) PublishStates(client mqtt.Client, message mqtt.Message) {
+	currentVolume, err := h.GetVolume()
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+
+	logger.Info(currentVolume)
 }
 
 // ProcessMessages process mqtt message queue and dispatch to handlers
@@ -93,7 +105,7 @@ func (h *DenonAVR) VolumeUp() error {
 	conn, _ := telnet.DialTo(h.Host)
 	defer conn.Close()
 
-	cmd := fmt.Sprintf("%s%s", DenonMaster, DenonVolumeUP)
+	cmd := fmt.Sprintf("%s%s", DenonMasterVolume, DenonVolumeUP)
 
 	_, err := conn.Write([]byte(cmd))
 
@@ -109,7 +121,7 @@ func (h *DenonAVR) VolumeDown() error {
 	conn, _ := telnet.DialTo(h.Host)
 	defer conn.Close()
 
-	cmd := fmt.Sprintf("%s%s", DenonMaster, DenonVolumeDown)
+	cmd := fmt.Sprintf("%s%s", DenonMasterVolume, DenonVolumeDown)
 
 	_, err := conn.Write([]byte(cmd))
 
@@ -124,6 +136,38 @@ func (h *DenonAVR) VolumeDown() error {
 func (h *DenonAVR) SetVolume(v int) error {
 
 	return nil
+}
+
+func (h *DenonAVR) GetVolume() (string, error) {
+	var currentVolume string
+
+	decimalPointPosition := 2
+	re := regexp.MustCompile("[0-9]+")
+
+	conn, _ := telnet.DialTo(h.Host)
+	defer conn.Close()
+
+	command := fmt.Sprintf("%s%s", DenonMasterVolume, DenonQuery)
+
+	conn.Write([]byte(command))
+
+	commandResponse := make([]byte, 5)
+	_, err := conn.Read(commandResponse)
+	if err != nil {
+		logger.Error(err)
+		return currentVolume, err
+	}
+
+	commandResponseString := strings.TrimSpace(string(commandResponse))
+	numericVolume := re.FindAllString(commandResponseString, -1)
+
+	currentVolume = numericVolume[0]
+
+	if len(currentVolume) > 2 {
+		currentVolume = currentVolume[:decimalPointPosition] + "." + currentVolume[decimalPointPosition:]
+	}
+
+	return currentVolume, nil
 }
 
 func (h *DenonAVR) ToggleMute() error {

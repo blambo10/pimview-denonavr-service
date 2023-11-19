@@ -1,16 +1,39 @@
 package publisher
 
 import (
-	"fmt"
+	"pimview.thelabshack.com/pkg/denonavr"
+	"pimview.thelabshack.com/pkg/log"
 	mqtt "pimview.thelabshack.com/pkg/mqtt"
 	"time"
 )
 
-func Publish() {
+const (
+	topic = "denonavr/volume"
+)
+
+var (
+	logger = log.NewLogger()
+)
+
+func Run() {
+	avr := denonavr.New()
+
+	currentVolume, err := avr.GetVolume()
+	if err != nil {
+		logger.Info(err)
+	}
+
+	Publish(currentVolume)
+}
+
+func Publish(msg string) {
+	topic := "denonavr/currentvolume"
 	client := mqtt.GetClient("pimviewpub1")
 
-	text := fmt.Sprintf("on")
-	token := client.Publish("denonavr/power", 0, false, text)
+	logger.Info(topic + " " + msg)
+	//text := fmt.Sprintf("on")
+
+	token := client.Publish(topic, 0, false, msg)
 	token.Wait()
 	time.Sleep(time.Second)
 }

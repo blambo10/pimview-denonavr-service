@@ -27,7 +27,7 @@ func RunPublisher() *cobra.Command {
 		Use:   "pub",
 		Short: "Run Pimview Test Publisher",
 		Run: func(cmd *cobra.Command, args []string) {
-			publisher.Publish()
+			publisher.Run()
 		},
 	}
 
