@@ -4,15 +4,14 @@ import (
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	telnet "github.com/reiver/go-telnet"
+	"pimview.thelabshack.com/pkg/config"
+	"pimview.thelabshack.com/pkg/log"
 	"strings"
 )
 
 type DenonAVR struct {
 	Host   string
 	Client telnet.Caller
-
-	//ClientKey string
-	//Client heosapi.Heos
 }
 
 const (
@@ -21,20 +20,27 @@ const (
 	down   = "down"
 	mute   = "mute"
 
-	denonmaster = "MV"
-	denonup     = "UP"
-	denondown   = "DOWN"
-	denonmute   = "MUON"
-	denonunmute = "MUOFF"
+	DenonMaster       = "MV"
+	DenonVolumeUP     = "UP"
+	DenonVolumeDown   = "DOWN"
+	DenonVolumeMute   = "MUON"
+	DenonVolumeUNMute = "MUOFF"
+
+	DenonMuteState = "MU?"
+)
+
+var (
+	logger = log.NewLogger()
+	cfg    = config.GetDeviceConfig()
 )
 
 func New() *DenonAVR {
-	//h := heosapi.NewHeos("192.168.1.206:1255")
-
 	t := telnet.StandardCaller
+	device := fmt.Sprintf("%s:%s", cfg.Address, cfg.Port)
 
 	return &DenonAVR{
-		Host:   "192.168.1.206:23",
+		//Host:   "192.168.1.206:23",
+		Host:   device,
 		Client: t,
 	}
 }
@@ -44,8 +50,8 @@ func New() *DenonAVR {
 // message mqtt message including topic and payload
 func (h *DenonAVR) ProcessMessages(client mqtt.Client, message mqtt.Message) {
 
-	fmt.Println("processing messages ...")
-	fmt.Println(message.Topic())
+	logger.Info("processing messages ...")
+	logger.Info(message.Topic())
 
 	switch {
 	case strings.Contains(message.Topic(), volume):
@@ -58,28 +64,27 @@ func (h *DenonAVR) ProcessMessages(client mqtt.Client, message mqtt.Message) {
 func (h *DenonAVR) Volume(direction []byte) {
 	d := string(direction)
 
-	fmt.Println("asdfasd")
-	fmt.Println(d)
+	logger.Info(d)
 	switch d {
 	case up:
-		fmt.Println("Volume UP")
+		logger.Infof("Volume UP")
 		err := h.VolumeUp()
 		if err != nil {
-			fmt.Println(err)
+			logger.Error(err)
 		}
 	case down:
-		fmt.Println("Volume DOWN")
+		logger.Infof("Volume DOWN")
 		err := h.VolumeDown()
 
 		if err != nil {
-			fmt.Println(err)
+			logger.Error(err)
 		}
 	case mute:
-		fmt.Println("Volume Mute")
-		err := h.Mute()
+		logger.Infof("Toggle Volume Mute")
+		err := h.ToggleMute()
 
 		if err != nil {
-			fmt.Println(err)
+			logger.Error(err)
 		}
 	}
 }
@@ -89,12 +94,12 @@ func (h *DenonAVR) VolumeUp() error {
 	conn, _ := telnet.DialTo(h.Host)
 	defer conn.Close()
 
-	cmd := fmt.Sprintf("%s%s", denonmaster, denonup)
+	cmd := fmt.Sprintf("%s%s", DenonMaster, DenonVolumeUP)
 
 	_, err := conn.Write([]byte(cmd))
 
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 		return err
 	}
 
@@ -105,12 +110,12 @@ func (h *DenonAVR) VolumeDown() error {
 	conn, _ := telnet.DialTo(h.Host)
 	defer conn.Close()
 
-	cmd := fmt.Sprintf("%s%s", denonmaster, denondown)
+	cmd := fmt.Sprintf("%s%s", DenonMaster, DenonVolumeDown)
 
 	_, err := conn.Write([]byte(cmd))
 
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 		return err
 	}
 
@@ -122,104 +127,43 @@ func (h *DenonAVR) SetVolume(v int) error {
 	return nil
 }
 
-func (h *DenonAVR) Mute() error {
+func (h *DenonAVR) ToggleMute() error {
+
+	var newMuteState string
 
 	conn, _ := telnet.DialTo(h.Host)
 	defer conn.Close()
 
-	_, err := conn.Write([]byte(denonmute))
+	conn.Write([]byte(DenonMuteState))
+
+	commandResponse := make([]byte, 5)
+	_, err := conn.Read(commandResponse)
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	currentState := strings.TrimSpace(string(commandResponse))
+
+	switch currentState {
+	case DenonVolumeMute:
+		newMuteState = DenonVolumeUNMute
+		logger.Info("unmuting receiver")
+	case DenonVolumeUNMute:
+		newMuteState = DenonVolumeMute
+		logger.Info("muting receiver")
+	default:
+		err := fmt.Errorf("unable to query current mute state for %s : response %s", h.Host, currentState)
+		logger.Error(err)
+		return err
+	}
+
+	_, err = conn.Write([]byte(newMuteState))
 
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 		return err
 	}
 
 	return nil
 }
-
-//
-//func (h *DenonAVR) VolumeUp() error {
-//	h.Client.Connect()
-//	defer h.Client.Disconnect()
-//
-//	cmd := heosapi.Command{
-//		Group:   "player",
-//		Command: "volume_up",
-//	}
-//
-//	resp, err := h.Client.Send(cmd, nil)
-//	if err != nil {
-//		//todo: change to logger
-//		fmt.Println(resp)
-//	}
-//
-//	return nil
-//}
-//
-//func (h *DenonAVR) VolumeDown() error {
-//	err := h.Client.Connect()
-//
-//	if err != nil {
-//		fmt.Println(err)
-//		return err
-//	}
-//
-//	defer func() {
-//		err := h.Client.Disconnect()
-//
-//		if err != nil {
-//			fmt.Println(err)
-//			os.Exit(2)
-//		}
-//	}()
-//
-//	cmd := heosapi.Command{
-//		Group:   "player",
-//		Command: "volume_down&step=1",
-//	}
-//
-//	resp, err := h.Client.Send(cmd, map[string]string{})
-//	if err != nil {
-//		//todo: change to logger
-//		fmt.Println(resp)
-//	}
-//
-//	fmt.Println(resp)
-//
-//	return nil
-//}
-//
-//func (h *DenonAVR) SetVolume(v int) error {
-//	h.Client.Connect()
-//	defer h.Client.Disconnect()
-//
-//	_ = v
-//
-//	return nil
-//}
-//
-//func (h *DenonAVR) Mute() error {
-//	h.Client.Connect()
-//	defer h.Client.Disconnect()
-//
-//	cmd := heosapi.Command{
-//		Group: "",
-//		//Command: "playertoggle_mute",
-//		Command: "get_volume?pid=1",
-//		//Command: "get_groups",
-//	}
-//
-//	//h.Client.
-//	resp, err := h.Client.Send(cmd, map[string]string{})
-//	if err != nil {
-//		//todo: change to logger
-//		fmt.Println(resp)
-//	}
-//
-//	//fmt.Println("%+v\n", resp)
-//
-//	fmt.Println(resp.Payload)
-//	fmt.Println(resp.Heos.Result)
-//
-//	return nil
-//}

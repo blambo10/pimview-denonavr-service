@@ -7,7 +7,7 @@ import (
 )
 
 //var (
-//	logger = logging.NewLogger()
+//	log = log.NewLogger()
 //)
 
 func RunPlugin() *cobra.Command {

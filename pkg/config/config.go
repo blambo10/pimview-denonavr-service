@@ -9,6 +9,12 @@ import (
 type Config struct {
 	logging Logging
 	mqtt    MQTT
+	device  DeviceConfig
+}
+
+type DeviceConfig struct {
+	Address string
+	Port    string
 }
 
 type MQTT struct {
@@ -55,7 +61,11 @@ func NewConfig() *Config {
 			Port:     port,
 			Username: envy.Get("MQTT_BROKER_USERNAME", ""),
 			Password: envy.Get("MQTT_BROKER_PASSWORD", ""),
-			ClientID: envy.Get("MQTT_BROKER_CLIENTID", "pimview-test"),
+			ClientID: envy.Get("MQTT_BROKER_CLIENTID", "pimview-denonavr"),
+		},
+		device: DeviceConfig{
+			Address: envy.Get("DEVICE_ADDRESS", "localhost"),
+			Port:    envy.Get("DEVICE_PORT", ""),
 		},
 	}
 }
@@ -66,4 +76,8 @@ func GetLogger() Logging {
 
 func GetMQTT() MQTT {
 	return NewConfig().mqtt
+}
+
+func GetDeviceConfig() DeviceConfig {
+	return NewConfig().device
 }
