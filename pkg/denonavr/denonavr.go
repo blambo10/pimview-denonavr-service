@@ -39,7 +39,6 @@ func New() *DenonAVR {
 	device := fmt.Sprintf("%s:%s", cfg.Address, cfg.Port)
 
 	return &DenonAVR{
-		//Host:   "192.168.1.206:23",
 		Host:   device,
 		Client: t,
 	}
