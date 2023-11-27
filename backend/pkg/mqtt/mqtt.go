@@ -6,6 +6,8 @@ import (
 	"pimview.thelabshack.com/pkg/config"
 )
 
+type Client mqtt.Client
+
 var messagePubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	fmt.Printf("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
 }

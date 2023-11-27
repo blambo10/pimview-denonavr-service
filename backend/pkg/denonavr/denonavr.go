@@ -7,6 +7,7 @@ import (
 	"pimview.thelabshack.com/pkg/config"
 	"pimview.thelabshack.com/pkg/log"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -72,11 +73,18 @@ func (h *DenonAVR) ProcessMessages(client mqtt.Client, message mqtt.Message) {
 
 // Volume volume handler
 // direction mqtt message payload
-func (h *DenonAVR) Volume(direction []byte) {
-	d := string(direction)
+func (h *DenonAVR) Volume(volumeStateBytes []byte) {
+	volumeState := string(volumeStateBytes)
 
-	logger.Info(d)
-	switch d {
+	logger.Info("Current Volume sent in: ", volumeState)
+
+	_, err := strconv.ParseFloat(volumeState, 64)
+	if err == nil {
+		h.SetVolume(volumeState)
+		return
+	}
+
+	switch volumeState {
 	case up:
 		logger.Infof("Volume UP")
 		err := h.VolumeUp()
@@ -97,6 +105,8 @@ func (h *DenonAVR) Volume(direction []byte) {
 		if err != nil {
 			logger.Error(err)
 		}
+	default:
+		logger.Error("unable to set volume")
 	}
 }
 
@@ -133,7 +143,30 @@ func (h *DenonAVR) VolumeDown() error {
 	return nil
 }
 
-func (h *DenonAVR) SetVolume(v int) error {
+func (h *DenonAVR) SetVolume(volume string) error {
+
+	if strings.Contains(volume, ".") {
+		volumeSplit := strings.Split(volume, ".")
+
+		switch length := len(volumeSplit[0]); {
+		case length == 1:
+			volume = fmt.Sprintf("0%s%s", volumeSplit[0], volumeSplit[1])
+		case length == 2:
+			volume = fmt.Sprintf("%s%s", volumeSplit[0], volumeSplit[1])
+		}
+	}
+
+	conn, _ := telnet.DialTo(h.Host)
+	defer conn.Close()
+
+	cmd := fmt.Sprintf("%s%s\r\n", DenonMasterVolume, volume)
+	logger.Info("Volume being applied: " + cmd)
+	_, err := conn.Write([]byte(cmd))
+
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
 
 	return nil
 }

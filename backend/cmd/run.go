@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"log"
+	"pimview.thelabshack.com/pkg/mqtt"
 	"pimview.thelabshack.com/pkg/publisher"
 	"pimview.thelabshack.com/pkg/subscriber"
+	"time"
 )
 
 //var (
@@ -27,7 +30,23 @@ func RunPublisher() *cobra.Command {
 		Use:   "pub",
 		Short: "Run Pimview Test Publisher",
 		Run: func(cmd *cobra.Command, args []string) {
-			publisher.Run()
+
+			ticker := time.NewTicker(10 * time.Second)
+			done := make(chan struct{})
+
+			client := mqtt.GetClient("pimviewpub1")
+
+			for {
+
+				publisher.Run(client)
+
+				select {
+				case <-done:
+					return
+				case <-ticker.C:
+					log.Println("redo")
+				}
+			}
 		},
 	}
 

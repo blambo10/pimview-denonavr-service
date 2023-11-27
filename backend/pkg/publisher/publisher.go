@@ -15,7 +15,7 @@ var (
 	logger = log.NewLogger()
 )
 
-func Run() {
+func Run(client mqtt.Client) {
 	avr := denonavr.New()
 
 	currentVolume, err := avr.GetVolume()
@@ -23,12 +23,11 @@ func Run() {
 		logger.Info(err)
 	}
 
-	Publish(currentVolume)
+	Publish(client, currentVolume)
 }
 
-func Publish(msg string) {
+func Publish(client mqtt.Client, msg string) {
 	topic := "denonavr/currentvolume"
-	client := mqtt.GetClient("pimviewpub1")
 
 	logger.Info(topic + " " + msg)
 	//text := fmt.Sprintf("on")
