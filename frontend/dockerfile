@@ -6,6 +6,8 @@ ENV PATH /app/node_modules/.bin:$PATH
 # install app dependencies
 COPY package.json ./
 COPY package-lock.json ./
+COPY scripts/create-env-file.sh ./create-env-file.sh
+RUN chmod +x ./create-env-file.sh 
 
 #TODO issue with react try running commented with explicit react dnd install and see if error can be reproduced. 
 
@@ -19,4 +21,4 @@ RUN npm install @emotion/styled
 
 COPY . ./
 
-CMD ["npm", "start"]
+CMD ["./create-env-file.sh"]
