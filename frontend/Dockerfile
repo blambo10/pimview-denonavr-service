@@ -21,4 +21,4 @@ RUN npm install @emotion/styled
 
 COPY . ./
 
-CMD ["./bootstrap.sh"]
+CMD ["/bin/sh", "/app/bootstrap.sh"]

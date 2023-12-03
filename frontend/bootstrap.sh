@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 touch .env
 
 if [ $# -ne 0 ]; then
