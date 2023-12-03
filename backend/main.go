@@ -5,6 +5,7 @@ import (
 	"pimview.thelabshack.com/cmd"
 )
 
+// github action test
 func main() {
 	cobra.CheckErr(cmd.NewPlugin().Execute())
 }
