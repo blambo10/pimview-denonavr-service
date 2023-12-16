@@ -5,11 +5,23 @@ import * as React from 'react';
 import { useTheme, styled } from '@mui/material/styles';
 import MediaControl from './components/MediaControl/MediaControl'
 
+let mqttAddress = "";
+let mqttUsername = "";
+let mqttPassword = "";
+let mqttPort = "";
 
-const mqttAddress = process.env.REACT_APP_PIMVIEW_RABBITMQ_MQTT_ADDRESS;
-const mqttUsername = process.env.REACT_APP_PIMVIEW_RABBITMQ_MQTT_USER;
-const mqttPassword = process.env.REACT_APP_PIMVIEW_RABBITMQ_MQTT_PASSWORD;
-const mqttPort = process.env.REACT_APP_PIMVIEW_RABBITMQ_MQTT_PORT;
+
+try {
+  mqttAddress = process.env.REACT_APP_PIMVIEW_RABBITMQ_MQTT_ADDRESS;
+  mqttUsername = process.env.REACT_APP_PIMVIEW_RABBITMQ_MQTT_USER;
+  mqttPassword = process.env.REACT_APP_PIMVIEW_RABBITMQ_MQTT_PASSWORD;
+  mqttPort = process.env.REACT_APP_PIMVIEW_RABBITMQ_MQTT_PORT;
+} catch {
+  mqttAddress = "{{MQTT_ADDRESS}}";
+  mqttUsername = "{{MQTT_USERNAME}}";
+  mqttPassword = "{{MQTT_PASSWORD}}";
+  mqttPort = "{{MQTT_PORT}}";
+}
 
 var options = {
   

@@ -9,6 +9,9 @@ if [ $# -ne 0 ]; then
   done
 fi
 
-env | grep "REACT_APP" > .env
+cd /usr/share/nginx/html/
 
-npm start
+sed -i "s/{{MQTT_ADDRESS}}/$REACT_APP_PIMVIEW_RABBITMQ_MQTT_ADDRESS/g" *
+sed -i "s/{{MQTT_USERNAME}}/$REACT_APP_PIMVIEW_RABBITMQ_MQTT_USER/g" *
+sed -i "s/{{MQTT_PASSWORD}}/$REACT_APP_PIMVIEW_RABBITMQ_MQTT_PASSWORD/g" *
+sed -i "s/{{MQTT_PORT}}/$REACT_APP_PIMVIEW_RABBITMQ_MQTT_PORT/g" *
